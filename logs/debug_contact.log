@@ -1,0 +1,42 @@
+[2026-06-08 11:00:03] --- Request baru dimulai ---
+[2026-06-08 11:00:03] IP: ::1
+[2026-06-08 11:00:03] Memulai pengecekan rate limit...
+[2026-06-08 11:00:03] Rate limit OK.
+[2026-06-08 11:00:03] Data form diterima: Nama=Firdinal Juliandre, Email=firdinaljuliandre9@gmail.com
+[2026-06-08 11:00:03] Validasi input OK.
+[2026-06-08 11:00:03] Memulai verifikasi reCAPTCHA ke Google...
+[2026-06-08 11:00:04] Raw response reCAPTCHA: {
+  "success": true,
+  "challenge_ts": "2026-06-08T08:59:49Z",
+  "hostname": "localhost"
+}
+[2026-06-08 11:00:04] Verifikasi reCAPTCHA berhasil.
+[2026-06-08 11:00:04] Memulai konfigurasi PHPMailer...
+[2026-06-08 11:01:43] --- Request baru dimulai ---
+[2026-06-08 11:01:43] IP: ::1
+[2026-06-08 11:01:43] Memulai pengecekan rate limit...
+[2026-06-08 11:01:43] Rate limit OK.
+[2026-06-08 11:01:43] Data form diterima: Nama=Firdinal Juliandre, Email=firdinaljuliandre9@gmail.com
+[2026-06-08 11:01:43] Validasi input OK.
+[2026-06-08 11:01:43] Memulai verifikasi reCAPTCHA ke Google...
+[2026-06-08 11:01:43] Raw response reCAPTCHA: {
+  "success": true,
+  "challenge_ts": "2026-06-08T09:01:25Z",
+  "hostname": "localhost"
+}
+[2026-06-08 11:01:44] Verifikasi reCAPTCHA berhasil.
+[2026-06-08 11:01:44] Memulai konfigurasi PHPMailer...
+[2026-06-08 11:02:46] --- Request baru dimulai ---
+[2026-06-08 11:02:46] IP: ::1
+[2026-06-08 11:02:46] Memulai pengecekan rate limit...
+[2026-06-08 11:02:46] Rate limit OK.
+[2026-06-08 11:02:46] Data form diterima: Nama=Firdinal Juliandre, Email=firdinaljuliandre9@gmail.com
+[2026-06-08 11:02:46] Validasi input OK.
+[2026-06-08 11:02:46] Memulai verifikasi reCAPTCHA ke Google...
+[2026-06-08 11:02:46] Raw response reCAPTCHA: {
+  "success": true,
+  "challenge_ts": "2026-06-08T09:02:21Z",
+  "hostname": "localhost"
+}
+[2026-06-08 11:02:46] Verifikasi reCAPTCHA berhasil.
+[2026-06-08 11:02:46] Memulai konfigurasi PHPMailer...

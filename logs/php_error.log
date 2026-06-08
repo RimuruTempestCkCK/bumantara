@@ -1,0 +1,5 @@
+[08-Jun-2026 11:00:04 Europe/Berlin] PHP Fatal error:  Uncaught ValueError: Unknown format specifier ";" in C:\xampp\htdocs\Bumantara\forms\contact.php:231
+Stack trace:
+#0 C:\xampp\htdocs\Bumantara\forms\contact.php(231): sprintf('\r\n        <div ...', 'Firdinal Julian...', 'firdinaljuliand...', '085157558469', 'INI ADALAH EMAI...', 'afasfasdfasdfas...', '::1', '08-06-2026 11:0...')
+#1 {main}
+  thrown in C:\xampp\htdocs\Bumantara\forms\contact.php on line 231

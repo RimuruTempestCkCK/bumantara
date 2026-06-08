@@ -2,10 +2,24 @@
 
 // Nonaktifkan display_errors agar tidak merusak output JSON jika ada warning/notice
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/php_error.log');
 error_reporting(E_ALL);
 
 // Mulai output buffering untuk menangkap output tak terduga
 ob_start();
+
+/**
+ * Helper untuk logging debug
+ */
+function debug_log($message) {
+    $log_file = __DIR__ . '/../logs/debug_contact.log';
+    $timestamp = date('Y-m-d H:i:s');
+    file_put_contents($log_file, "[$timestamp] $message\n", FILE_APPEND);
+}
+
+debug_log("--- Request baru dimulai ---");
+debug_log("IP: " . get_client_ip());
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -16,7 +30,7 @@ require __DIR__ . '/../vendor/autoload.php';
 // KONFIGURASI
 // ============================================
 $RECAPTCHA_SECRET_KEY = "6LdqARMtAAAAAAus4flEy72Twc8DsweTxdG_6ypQ"; // Dari Google reCAPTCHA
-$EMAIL_RECEIVE = "rimurudotcom@gmail.com.com"; // Email penerima pesan
+$EMAIL_RECEIVE = "rimurudotcom@gmail.com"; // Email penerima pesan
 $EMAIL_FROM = "nonamebumantara@gmail.com"; // Email pengirim (Gmail)
 $EMAIL_PASSWORD = "fhimfmmttxfyndjq"; // App Password Gmail
 
@@ -52,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // ============================================
 // ANTI SPAM - RATE LIMITING
 // ============================================
+debug_log("Memulai pengecekan rate limit...");
 $ip_address = get_client_ip();
 $rate_limit_key = 'contact_form_' . $ip_address;
 
@@ -73,6 +88,7 @@ if (file_exists($rate_limit_file)) {
     
     // Cek apakah sudah melebihi limit
     if (count($data['attempts']) >= $rate_limit) {
+        debug_log("Rate limit tercapai untuk IP: $ip_address");
         send_response(false, 'Terlalu banyak permintaan. Silakan coba lagi dalam 1 jam', 429);
     }
     
@@ -85,6 +101,7 @@ if (file_exists($rate_limit_file)) {
         'attempts' => [time()]
     ]));
 }
+debug_log("Rate limit OK.");
 
 // ============================================
 // AMBIL DATA FORM
@@ -95,6 +112,8 @@ $phone = isset($_POST['phone']) ? trim($_POST['phone']) : '';
 $subject = isset($_POST['subject']) ? trim($_POST['subject']) : '';
 $message = isset($_POST['message']) ? trim($_POST['message']) : '';
 $recaptcha_response = isset($_POST['g-recaptcha-response']) ? $_POST['g-recaptcha-response'] : '';
+
+debug_log("Data form diterima: Nama=$name, Email=$email");
 
 // ============================================
 // VALIDASI INPUT
@@ -118,34 +137,21 @@ if (empty($message) || strlen($message) < 10) {
     $errors[] = 'Pesan harus diisi (minimal 10 karakter)';
 }
 
-// Validasi panjang maksimal
-if (strlen($name) > 100) {
-    $errors[] = 'Nama terlalu panjang (max 100 karakter)';
-}
-
-if (strlen($email) > 100) {
-    $errors[] = 'Email terlalu panjang (max 100 karakter)';
-}
-
-if (strlen($subject) > 200) {
-    $errors[] = 'Subjek terlalu panjang (max 200 karakter)';
-}
-
-if (strlen($message) > 5000) {
-    $errors[] = 'Pesan terlalu panjang (max 5000 karakter)';
-}
-
 if (!empty($errors)) {
+    debug_log("Validasi input gagal: " . implode(", ", $errors));
     send_response(false, implode(', ', $errors), 400);
 }
+debug_log("Validasi input OK.");
 
 // ============================================
 // VALIDASI reCAPTCHA
 // ============================================
 if (empty($recaptcha_response)) {
+    debug_log("reCAPTCHA response kosong.");
     send_response(false, 'Verifikasi reCAPTCHA diperlukan', 400);
 }
 
+debug_log("Memulai verifikasi reCAPTCHA ke Google...");
 // POST ke Google untuk verifikasi reCAPTCHA
 $recaptcha_url = 'https://www.google.com/recaptcha/api/siteverify';
 $recaptcha_post = http_build_query([
@@ -162,17 +168,19 @@ $context = stream_context_create([
     ]
 ]);
 
-$recaptcha_result = @json_decode(
-    file_get_contents($recaptcha_url, false, $context),
-    true
-);
+$recaptcha_raw = @file_get_contents($recaptcha_url, false, $context);
+debug_log("Raw response reCAPTCHA: " . ($recaptcha_raw ?: "KOSONG"));
+
+$recaptcha_result = json_decode($recaptcha_raw, true);
 
 if (
     !isset($recaptcha_result['success']) ||
     !$recaptcha_result['success']
 ) {
+    debug_log("Verifikasi reCAPTCHA gagal.");
     send_response(false, 'Verifikasi reCAPTCHA gagal. Silakan coba lagi', 400);
 }
+debug_log("Verifikasi reCAPTCHA berhasil.");
 
 // ============================================
 // SANITASI & ESCAPE DATA
@@ -187,6 +195,7 @@ $messageSafe = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
 // KIRIM EMAIL DENGAN PHPMailer
 // ============================================
 try {
+    debug_log("Memulai konfigurasi PHPMailer...");
     $mail = new PHPMailer(true);
 
     // SMTP Configuration
@@ -219,51 +228,42 @@ try {
     $mail->Subject = 'Pesan Baru: ' . $subjectSafe;
 
     // HTML Body
-    $mail->Body = sprintf(
-        "
+    $mail->Body = "
         <div style='font-family: Arial, sans-serif; line-height: 1.8; color: #333;'>
             <h2 style='color: #1a73e8;'>📧 Pesan Baru dari Website</h2>
             
             <table cellpadding='10' style='border-collapse: collapse; width: 100%; max-width: 500px;'>
                 <tr style='background-color: #f5f5f5;'>
                     <td style='border: 1px solid #ddd; font-weight: bold;'>Nama</td>
-                    <td style='border: 1px solid #ddd;'>%s</td>
+                    <td style='border: 1px solid #ddd;'>$nameSafe</td>
                 </tr>
                 <tr>
                     <td style='border: 1px solid #ddd; font-weight: bold;'>Email</td>
-                    <td style='border: 1px solid #ddd;'>%s</td>
+                    <td style='border: 1px solid #ddd;'>$emailSafe</td>
                 </tr>
                 <tr style='background-color: #f5f5f5;'>
                     <td style='border: 1px solid #ddd; font-weight: bold;'>WhatsApp</td>
-                    <td style='border: 1px solid #ddd;'>%s</td>
+                    <td style='border: 1px solid #ddd;'>$phoneSafe</td>
                 </tr>
                 <tr>
                     <td style='border: 1px solid #ddd; font-weight: bold;'>Subjek</td>
-                    <td style='border: 1px solid #ddd;'>%s</td>
+                    <td style='border: 1px solid #ddd;'>$subjectSafe</td>
                 </tr>
             </table>
 
             <hr style='border: none; border-top: 2px solid #ddd; margin: 20px 0;'>
 
             <h3 style='color: #1a73e8;'>Isi Pesan:</h3>
-            <p style='white-space: pre-wrap; background-color: #f9f9f9; padding: 15px; border-radius: 5px;'>%s</p>
+            <p style='white-space: pre-wrap; background-color: #f9f9f9; padding: 15px; border-radius: 5px;'>$messageSafe</p>
 
             <hr style='border: none; border-top: 1px solid #ddd; margin: 20px 0;'>
 
             <p style='font-size: 12px; color: #666;'>
-                <strong>IP Address:</strong> %s<br>
-                <strong>Waktu:</strong> %s WIB
+                <strong>IP Address:</strong> $ip_address<br>
+                <strong>Waktu:</strong> " . date('d-m-Y H:i:s') . " WIB
             </p>
         </div>
-        ",
-        $nameSafe,
-        $emailSafe,
-        $phoneSafe,
-        $subjectSafe,
-        $messageSafe,
-        $ip_address,
-        date('d-m-Y H:i:s')
-    );
+    ";
 
     // Plain Text Body
     $mail->AltBody = sprintf(
