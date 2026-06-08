@@ -1,15 +1,22 @@
 <?php
 
+// Nonaktifkan display_errors agar tidak merusak output JSON jika ada warning/notice
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+
+// Mulai output buffering untuk menangkap output tak terduga
+ob_start();
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require '../vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 // ============================================
 // KONFIGURASI
 // ============================================
 $RECAPTCHA_SECRET_KEY = "6LdqARMtAAAAAAus4flEy72Twc8DsweTxdG_6ypQ"; // Dari Google reCAPTCHA
-$EMAIL_RECEIVE = "info@bumantara.com"; // Email penerima pesan
+$EMAIL_RECEIVE = "rimurudotcom@gmail.com.com"; // Email penerima pesan
 $EMAIL_FROM = "nonamebumantara@gmail.com"; // Email pengirim (Gmail)
 $EMAIL_PASSWORD = "fhimfmmttxfyndjq"; // App Password Gmail
 
@@ -21,17 +28,25 @@ $rate_limit_period = 3600; // 1 jam
 // SET HEADER JSON
 // ============================================
 header('Content-Type: application/json; charset=utf-8');
-http_response_code(200);
+
+/**
+ * Helper function untuk mengirim response JSON yang bersih
+ */
+function send_response($success, $message, $code = 200) {
+    if (ob_get_length()) ob_clean();
+    http_response_code($code);
+    echo json_encode([
+        'success' => $success,
+        'message' => $message
+    ]);
+    exit;
+}
 
 // ============================================
 // VALIDASI METHOD
 // ============================================
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die(json_encode([
-        'success' => false,
-        'message' => 'Metode request tidak valid'
-    ]));
+    send_response(false, 'Metode request tidak valid', 405);
 }
 
 // ============================================
@@ -58,11 +73,7 @@ if (file_exists($rate_limit_file)) {
     
     // Cek apakah sudah melebihi limit
     if (count($data['attempts']) >= $rate_limit) {
-        http_response_code(429);
-        die(json_encode([
-            'success' => false,
-            'message' => 'Terlalu banyak permintaan. Silakan coba lagi dalam 1 jam'
-        ]));
+        send_response(false, 'Terlalu banyak permintaan. Silakan coba lagi dalam 1 jam', 429);
     }
     
     // Tambah attempt baru
@@ -125,22 +136,14 @@ if (strlen($message) > 5000) {
 }
 
 if (!empty($errors)) {
-    http_response_code(400);
-    die(json_encode([
-        'success' => false,
-        'message' => implode(', ', $errors)
-    ]));
+    send_response(false, implode(', ', $errors), 400);
 }
 
 // ============================================
 // VALIDASI reCAPTCHA
 // ============================================
 if (empty($recaptcha_response)) {
-    http_response_code(400);
-    die(json_encode([
-        'success' => false,
-        'message' => 'Verifikasi reCAPTCHA diperlukan'
-    ]));
+    send_response(false, 'Verifikasi reCAPTCHA diperlukan', 400);
 }
 
 // POST ke Google untuk verifikasi reCAPTCHA
@@ -166,14 +169,9 @@ $recaptcha_result = @json_decode(
 
 if (
     !isset($recaptcha_result['success']) ||
-    !$recaptcha_result['success'] ||
-    (isset($recaptcha_result['score']) && $recaptcha_result['score'] < 0.5)
+    !$recaptcha_result['success']
 ) {
-    http_response_code(400);
-    die(json_encode([
-        'success' => false,
-        'message' => 'Verifikasi reCAPTCHA gagal. Silakan coba lagi'
-    ]));
+    send_response(false, 'Verifikasi reCAPTCHA gagal. Silakan coba lagi', 400);
 }
 
 // ============================================
@@ -281,21 +279,12 @@ try {
     $mail->send();
 
     // SUCCESS RESPONSE
-    http_response_code(200);
-    die(json_encode([
-        'success' => true,
-        'message' => 'Pesan Anda telah berhasil dikirim! Kami akan segera membalas.'
-    ]));
+    send_response(true, 'Pesan Anda telah berhasil dikirim! Kami akan segera membalas.');
 
 } catch (Exception $e) {
     // ERROR RESPONSE
     error_log('PHPMailer Error: ' . $mail->ErrorInfo, 3, '../logs/email_errors.log');
-    
-    http_response_code(500);
-    die(json_encode([
-        'success' => false,
-        'message' => 'Terjadi kesalahan saat mengirim email. Tim kami telah diberitahu. Silakan coba lagi nanti.'
-    ]));
+    send_response(false, 'Terjadi kesalahan saat mengirim email. Tim kami telah diberitahu. Silakan coba lagi nanti.', 500);
 }
 
 // ============================================
