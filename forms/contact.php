@@ -8,7 +8,7 @@ require '../vendor/autoload.php';
 // ============================================
 // KONFIGURASI
 // ============================================
-$RECAPTCHA_SECRET_KEY = "GANTI_DENGAN_SECRET_KEY_ANDA"; // Dari Google reCAPTCHA
+$RECAPTCHA_SECRET_KEY = "6LdqARMtAAAAAAus4flEy72Twc8DsweTxdG_6ypQ"; // Dari Google reCAPTCHA
 $EMAIL_RECEIVE = "info@bumantara.com"; // Email penerima pesan
 $EMAIL_FROM = "nonamebumantara@gmail.com"; // Email pengirim (Gmail)
 $EMAIL_PASSWORD = "fhimfmmttxfyndjq"; // App Password Gmail
